@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser.add_argument("--write_to_output", help="Whether to save images in folder ${detections_folder}/visualization. Otherwise, just cv2.imshow is used.", action="store_true")
     args = parser.parse_args()
 
-    assert args.detections_folder.exists()
+    # assert args.detections_folder.exists()
     assert args.dataset_directory.exists()
     print("detections_", args.sequence)
     print("detections_folder", args.detections_folder)
@@ -34,28 +34,28 @@ if __name__ == '__main__':
     assert args.event_time_window_us > 0
 
     if args.write_to_output:
-        output_path = args.detections_folder / "visualization1"
+        assert (args.detections_folder / f"detections_{args.sequence}.npy").exists()
+        assert args.detections_folder.exists()
+        output_path = args.detections_folder / "visualization"
         output_path.mkdir(parents=True, exist_ok=True)
 
-    detections_file = args.detections_folder / f"detections_{args.sequence}.npy"
-    detections = np.load(detections_file)
-
-
-    print("detections",detections)
-    print("detections.dtype.names",detections.dtype.names)
- # detections.dtype.names ('t', 'x', 'y', 'w', 'h', 'class_id', 'class_confidence')
- #    print("detections['t']",detections['t'])
-    detection_timestamps = np.unique(detections['t'])
-
-    print('args.sequence',args.sequence)
     dsec_directory = DSECDirectory(args.dataset_directory / args.sequence)
 
-    print("dsec_directory",args.dataset_directory,args.sequence)
     t0, t1 = load_start_and_end_time(dsec_directory)
 
     vis_timestamps = np.arange(t0, t1, step=args.vis_time_step_us)
     step_index_to_image_index = compute_index(dsec_directory.images.timestamps, vis_timestamps)
-    step_index_to_boxes_index = compute_index(detection_timestamps, vis_timestamps)
+
+    show_detections = args.detections_folder is not None
+
+    if not show_detections:
+        print("Did not specifiy detections. Just showing events and images.")
+
+    if show_detections:
+        detections_file = args.detections_folder / f"detections_{args.sequence}.npy"
+        detections = np.load(detections_file)
+        detection_timestamps = np.unique(detections['t'])
+        step_index_to_boxes_index = compute_index(detection_timestamps, vis_timestamps)
 
     scale = 2
     image_list = []  # 用于存储处理后的每一帧图像
@@ -74,22 +74,18 @@ if __name__ == '__main__':
 
         # find events within time window [image_timestamps, t]
         events = extract_from_h5_by_timewindow(dsec_directory.events.event_file, t-args.event_time_window_us, t)
-
-        # find most recent bounding boxes
-        boxes_index = step_index_to_boxes_index[step]
-        boxes_timestamp = detection_timestamps[boxes_index]
-        # 从 Detections 中筛选出 't' 字段的值等于 boxes_timestamp 的那些检测结果，并将它们存储在 boxes 变量中
-        boxes = detections[detections['t'] == boxes_timestamp]
-
-        # draw them on one image
-        scale = 2
         image = draw_events_on_image(image, events['x'], events['y'], events['p'])
-        # # 增加代码 假设 img 是 draw_events_on_image 的输出
-        # if not isinstance(image, np.ndarray):
-        #     image = np.array(image)  # 如果 img 不是 numpy 数组，进行转换
 
-        image = draw_bbox_on_img(image, scale*boxes['x'], scale*boxes['y'], scale*boxes['w'], scale*boxes["h"],
-                                 boxes["class_id"], boxes['class_confidence'], conf=0.3, nms=0.65)
+        if show_detections:
+            # find most recent bounding boxes
+            boxes_index = step_index_to_boxes_index[step]
+            boxes_timestamp = detection_timestamps[boxes_index]
+            boxes = detections[detections['t'] == boxes_timestamp]
+
+            # draw them on one image
+            scale = 2
+            image = draw_bbox_on_img(image, scale*boxes['x'], scale*boxes['y'], scale*boxes['w'], scale*boxes["h"],
+                                     boxes["class_id"], boxes['class_confidence'], conf=0.3, nms=0.65)
 
         image_list.append(image)
 
