@@ -20,7 +20,16 @@ If you use our code or refer to this project, please cite it using
 ```
 
 ## Installation
-First, download the github repository and its dependencies
+First, download the github repository and its dependencies<br>
+注:使用该方法安装,会出现问题:CUDA无法使用<br>
+解决办法:安装其他版本的cuda <br>
+实际测试<br>
+cuda11.7<br>
+pytorch1.13.0+cu117<br>
+cudnn(cudnn-linux-x86_64-8.4.1.50_cuda11.6-archive.tar.xz)<br>
+可行
+
+
 ```bash
 WORK_DIR=/path/to/work/directory/
 cd $WORK_DIR
@@ -37,7 +46,21 @@ conda create -y -n dagr python=3.8
 conda activate dagr
 conda install -y setuptools==69.5.1 mkl==2024.0 pytorch==1.11.0 torchvision==0.12.0 torchaudio==0.11.0 cudatoolkit=11.3 -c pytorch
 ```
-Then install the pytorch-geometric libraries. This may take a while.
+Then install the pytorch-geometric libraries. This may take a while.<br>
+注:<br>
+此处使用的环境也不对,使用该脚本安装的时候,所安装的torch几何库都是cuda10.1编译<br>
+具体解决办法为<br>
+1\删除清华源<br>
+2\使用 <br>
+```bash
+pip install --no-cache-dir xxx==x.x.x -f https://pytorch-geometric.com/whl/torch-1.13.0+cu117.html
+```
+其中版本号自己去网页中找<br>
+这样安装也很快不会卡半天<br>
+```bash
+ pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
 ```bash
 bash install_env.sh
 ```
@@ -71,6 +94,23 @@ CUDA_VISIBLE_DEVICES=$DEVICE python scripts/run_test_interframe.py --config conf
                                                                    --no_eval \                                                        
                                                                    --output_directory $LOG_DIR
 ```
+
+```bash
+LOG_DIR=~/Desktop/Projects/dagr/log
+DEVICE=0
+CUDA_VISIBLE_DEVICES=$DEVICE 
+python scripts/run_test_interframe.py --config config/dagr-s-dsec.yaml --use_image --img_net resnet50 --checkpoint data/dagr_s_50.pth --batch_size 8 --dataset_directory data/DSEC_fragment --no_eval --output_directory $LOG_DIR
+
+```
+```bash
+# 使用sort进行目标检测+追踪
+LOG_DIR=~/Desktop/Projects/dagr/log
+DEVICE=0
+CUDA_VISIBLE_DEVICES=$DEVICE 
+python scripts/detections_with_sort.py --config config/dagr-s-dsec.yaml --use_image --img_net resnet50 --checkpoint data/dagr_s_50.pth --batch_size 8 --dataset_directory data/DSEC_fragment --no_eval --output_directory $LOG_DIR
+```
+
+
 note the wandb directory as `$WANDB_DIR` and then visualize the detections with 
 ```bash
 python scripts/visualize_detections.py --detections_folder $LOG_DIR/$WANDB_DIR \
@@ -79,6 +119,11 @@ python scripts/visualize_detections.py --detections_folder $LOG_DIR/$WANDB_DIR \
                                        --event_time_window_us 5000 \
                                        --sequence zurich_city_13_b
 ```
+```bash
+python scripts/visualize_detections.py --detections_folder log/dsec/detection/test111/ --dataset_directory data/DSEC_fragment/test --vis_time_step_us 1000 --event_time_window_us 5000 --sequence zurich_city_13_b --write_to_output
+```
+
+
 
 ## Test on DSEC
 Start by downloading the DSEC dataset and the additional labelled data introduced in this work. 
@@ -138,11 +183,14 @@ This last script will write the high-rate detections from our method into the fo
 where `$WANDB_DIR` is the automatically generated folder created by wandb. 
 To visualize the detections, use the following script: 
 ```bash
-python scripts/visualize_detections.py --detections_folder $LOG_DIR/$WANDB_DIR \
-                                       --dataset_directory $DSEC_ROOT/test/ \
-                                       --vis_time_step_us 1000 \ 
-                                       --event_time_window_us 5000 \
-                                       --sequence zurich_city_13_b
+python scripts/visualize_detections.py --detections_folder $LOG_DIR/$WANDB_DIR --dataset_directory $DSEC_ROOT/test/ --vis_time_step_us 1000 --event_time_window_us 5000 --sequence zurich_city_13_b
+                                       
+```
+
+
+```bash
+DEVICE=0
+python scripts/visualize_detections.py --detections_folder log/dsec/detection/test002/ --dataset_directory data/DSEC_fragment/test/ --vis_time_step_us 1000 --event_time_window_us 5000 --sequence zurich_city_13_b
                                        
 ```
 This will start a visualization window showing the detections over a given sequence. If you want to save the detections 

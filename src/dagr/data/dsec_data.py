@@ -52,6 +52,27 @@ class EventDirectory(BaseDirectory):
 
 
 class DSEC(Dataset):
+    """
+     定义了一个名为 DSEC 的类，继承自 Dataset 类
+
+     用途：用于处理特定的数据集
+
+     输入含义：
+     - root：数据集的根路径
+     - split：数据集的分割方式，如训练集、测试集等
+     - transform：可选的函数，用于对数据进行转换
+     - debug：调试标志
+     - min_bbox_diag：最小边界框对角线长度的阈值
+     - min_bbox_height：最小边界框高度的阈值
+     - scale：缩放比例
+     - cropped_height：裁剪后的高度
+     - only_perfect_tracks：是否只选择完美的轨迹
+     - demo：演示模式标志
+     - no_eval：是否不进行评估
+
+     输出含义：
+     - 实例化的 DSEC 数据集对象
+     """
     MAPPING = dict(pedestrian="pedestrian", rider=None, car="car", bus="car", truck="car", bicycle=None,
                    motorcycle=None, train=None)
     def __init__(self,

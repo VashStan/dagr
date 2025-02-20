@@ -66,16 +66,36 @@ def bbox_t_to_ndarray(bbox, t):
 
 
 def compile(detections, sequences, timestamps):
+    """
+    定义了一个名为 `compile` 的函数，用于处理检测结果、序列和时间戳
+
+    用途：将检测结果按照序列进行分组和整合
+
+    输入含义：
+    - `detections`：检测结果的列表
+    - `sequences`：序列的列表
+    - `timestamps`：时间戳的列表
+
+    输出含义：
+    - 返回一个字典，其中键是序列，值是整合后的检测结果的 NumPy 数组
+    """
     output = {}
+    # 初始化一个空字典用于存储结果
+
     for det, s, t in zip(detections, sequences, timestamps):
+        # 同时遍历三个列表
         if s not in output:
             output[s] = []
+            # 如果序列 `s` 不在结果字典中，添加一个空列表作为其值
         output[s].append(bbox_t_to_ndarray(det, t))
+        # 将处理后的检测结果添加到对应序列的列表中
 
     if len(output) > 0:
         output = {k: np.concatenate(v) for k, v in output.items() if len(v) > 0}
+        # 如果结果字典不为空，对于有多个检测结果的序列，将其列表中的检测结果进行拼接
 
     return output
+    # 返回处理后的结果字典
 
 def to_cpu(data_list: List[Dict[str, torch.Tensor]]):
     return [{k: v.cpu() for k, v in d.items()} for d in data_list]
@@ -99,7 +119,22 @@ class Buffer:
 
 
 class DetectionBuffer:
+    """
+    定义了一个名为 DetectionBuffer 的类，用于处理检测相关的数据缓冲和计算
+    """
     def __init__(self, height: int, width: int, classes: List[str]):
+        """
+        构造函数
+
+        用途：初始化 DetectionBuffer 对象
+
+        输入含义：
+        - height：整数，表示图像或数据的高度
+        - width：整数，表示图像或数据的宽度
+        - classes：字符串列表，表示类别
+
+        输出含义：无直接返回，初始化对象的属性
+        """
         self.height = height
         self.width = width
         self.classes = classes
@@ -107,21 +142,50 @@ class DetectionBuffer:
         self.ground_truth = Buffer()
 
     def compile(self, sequences, timestamps):
+        """
+        用途：编译检测和真实数据
+
+        输入含义：
+        - sequences：可能是与数据相关的序列
+        - timestamps：时间戳
+
+        输出含义：
+        - 返回编译后的检测结果和真实结果
+        """
         detections = compile(self.detections, sequences, timestamps)
         groundtruth = compile(self.ground_truth, sequences, timestamps)
         return detections, groundtruth
 
     def update(self, detections: List[Dict[str, torch.Tensor]], groundtruth: List[Dict[str, torch.Tensor]], dataset: str, height=None, width=None):
+        """
+        用途：更新检测和真实数据的缓冲
+
+        输入含义：
+        - detections：检测结果列表，每个元素是一个字典
+        - groundtruth：真实结果列表，每个元素是一个字典
+        - dataset：数据集名称
+        - height：可选的图像或数据高度
+        - width：可选的图像或数据宽度
+
+        输出含义：无直接返回，更新对象的缓冲属性
+        """
         self.detections.extend(detections)
         self.ground_truth.extend(groundtruth)
 
     def compute(self)->Dict[str, float]:
+        """
+        用途：计算评估指标
+
+        输入含义：无额外输入
+
+        输出含义：
+        - 返回一个包含评估指标（如 mAP）及其值的字典
+        """
         output =  evaluate_detection(self.ground_truth.buffer, self.detections.buffer, height=self.height, width=self.width, classes=self.classes)
         output = {k.replace("AP", "mAP"): v for k, v in output.items()}
         self.detections.clear()
         self.ground_truth.clear()
         return output
-
 
 class DictBuffer:
     def __init__(self):

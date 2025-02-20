@@ -79,14 +79,40 @@ if __name__ == '__main__':
     ema.ema.cache_luts(radius=args.radius, height=test_dataset.height, width=test_dataset.width)
 
     detections = []
+    """
+    初始化一个空列表 `detections` 用于存储检测结果
+    """
     with torch.no_grad():
+        """
+        在不计算梯度的上下文环境中
+        """
         for n_us in np.linspace(0, 50000, args.num_interframe_steps):
+            """
+            遍历由 `np.linspace` 生成的一系列数值 `n_us`
+            """
             test_loader.dataset.set_num_us(int(n_us))
-            metrics, detections_one_offset = run_test_with_visualization(test_loader, ema.ema, dataset=args.dataset, name=wandb.run.name, compile_detections=True,
+            """
+            设置测试数据集中的某个参数
+            """
+            # metrics, detections_one_offset = run_test_with_visualization(test_loader, ema.ema, dataset=args.dataset, name=wandb.run.name, compile_detections=True,
+            metrics, detections_one_offset = run_test_with_visualization(test_loader, ema.ema, dataset=args.dataset,
+                                                                         name="test111", compile_detections=True,
                                                                          no_eval=args.no_eval)
+            """
+            运行带有可视化的测试函数，并获取评估指标 `metrics` 和当前偏移量下的检测结果 `detections_one_offset`
+            """
             detections.extend(detections_one_offset)
+            """
+            将当前偏移量下的检测结果添加到 `detections` 列表中
+            """
 
             if metrics is not None:
                 pprint(f"Time Window: {int(n_us)} ms \t mAP: {metrics['mAP']}")
+                """
+                如果评估指标存在，打印时间窗口和平均精度（mAP）
+                """
 
         save_detections(output_directory, detections)
+        """
+        保存最终的检测结果
+        """

@@ -2,7 +2,14 @@
 
 TORCH=$(python -c "import torch; print(torch.__version__)")
 CUDA=$(python -c "import torch; print(torch.version.cuda)")
-URL=https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+ URL=https://data.pyg.org/whl/torch-${TORCH}+${CUDA}.html
+# URL=https://pytorch-geometric.com/whl/torch-${TORCH}.html
+# URL=https://pytorch-geometric.com/whl/torch-1.11.0+cu113.html
+
+# 打印 TORCH, CUDA, URL
+echo "TORCH version: $TORCH"
+echo "CUDA version: $CUDA"
+echo "URL: $URL"
 
 pip install --no-cache-dir torch-scatter -f $URL;
 pip install --no-cache-dir torch-cluster -f $URL;
